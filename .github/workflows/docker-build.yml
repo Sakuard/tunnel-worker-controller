@@ -17,8 +17,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      new_tag: ${{ steps.version.outputs.new_tag }}
-      new_version: ${{ steps.version.outputs.new_version }}
+      new_tag: ${{ steps.version.outputs.newTag }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
