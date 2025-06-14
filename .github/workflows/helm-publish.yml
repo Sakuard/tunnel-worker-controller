@@ -1,47 +1,32 @@
-name: Manual Helm Release
+name: Release Charts
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - 'chart/**'
 
 jobs:
   release:
-    runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        
-      - name: Install Helm
-        uses: azure/setup-helm@v4
-        
-      - name: Package Helm Chart
+
+      - name: Configure Git
         run: |
-          # 創建一個臨時目錄來存放打包的 charts
-          mkdir -p .deploy
-          
-          # 打包 chart
-          helm package chart/ -d .deploy
-          
-          # 生成 index.yaml
-          helm repo index .deploy --url https://sakuard.github.io/tunnel-worker-controller
-          
-          # 檢查生成的文件
-          ls -la .deploy/
-          cat .deploy/index.yaml
-          
-      - name: Upload to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .deploy
-          keep_files: true
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
