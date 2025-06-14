@@ -1,0 +1,16 @@
+name: tunnel-manager
+namespace: monitoring
+
+env:
+  secretName: cloudflared-tunnel
+  keys:
+    - TG_BOT_TOKEN
+    - TG_CHAT_ID
+
+createExternalSecret:
+  refreshInterval: 1m
+  name: cloudflared-tunnel
+  creationPolicy: Owner
+  secretStoreRef: 
+    name: gcp-secret-manager
+    kind: ClusterSecretStore

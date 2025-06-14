@@ -155,7 +155,7 @@ async function createJob() {
             containers: [
               {
                 name: "tunnel",
-                image: "ghcr.io/sakuard/tunnel-worker-controller/tunnel:latest",
+                image: "ghcr.io/sakuard/tunnel-worker-controller/cloudflare-tunnel:v0.3.6",
                 command: ["/bin/sh", "-c"],
                 args: ["cloudflared tunnel --url http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local:80 & sleep 180;"],
                 imagePullPolicy: "Always"
