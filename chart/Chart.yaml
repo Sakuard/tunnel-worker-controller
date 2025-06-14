@@ -1,0 +1,15 @@
+apiVersion: v2
+name: tunnel-worker-controller
+description: A Helm chart for Kubernetes Job Manager with Cloudflare Tunnel Integration
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/Sakuard/tunnel-worker-controller
+sources:
+  - https://github.com/Sakuard/tunnel-worker-controller
+maintainers:
+  - name: CoSparks
+keywords:
+  - kubernetes
+  - cloudflare-tunnel
+  - telegram-bot
