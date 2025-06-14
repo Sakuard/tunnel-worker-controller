@@ -1,0 +1,14 @@
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y curl
+
+# 安裝 cloudflared
+RUN curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared \
+    && chmod +x /usr/local/bin/cloudflared
+
+# 將你的應用程式放進 container，假設執行在 3000
+# COPY app /app
+
+EXPOSE 3000
+CMD ["cloudflared", "version"]
+# CMD ["cloudflared", "tunnel", "--url", "http://host.docker.internal:3000"]
