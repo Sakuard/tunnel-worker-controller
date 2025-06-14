@@ -1,111 +1,32 @@
-name: Helm Chart Release
+name: Release Charts
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - 'chart/**'
-      - '.github/workflows/helm-publish.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'chart/**'
-      - '.github/workflows/helm-publish.yml'
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  helm-publish:
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+  release:
     permissions:
       contents: write
-      packages: write
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Get current chart version
-      id: chart_version
-      run: |
-        CHART_VERSION=$(grep '^version:' chart/Chart.yaml | cut -d' ' -f2)
-        echo "current_version=$CHART_VERSION" >> $GITHUB_OUTPUT
-        echo "Current chart version: $CHART_VERSION"
-
-    - name: Check if chart version exists as tag
-      id: check_tag
-      run: |
-        CHART_VERSION=${{ steps.chart_version.outputs.current_version }}
-        TAG_NAME="helm-v$CHART_VERSION"
-        
-        if git tag -l | grep -q "^$TAG_NAME$"; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-          echo "Tag $TAG_NAME already exists, skipping helm publish"
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "Tag $TAG_NAME does not exist, will publish chart"
-        fi
-
-    - name: Install Helm
-      if: steps.check_tag.outputs.exists == 'false'
-      uses: azure/setup-helm@v4
-      with:
-        version: '3.14.0'
-
-    - name: Log in to Container Registry for Helm
-      if: steps.check_tag.outputs.exists == 'false'
-      run: |
-        echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
-
-    - name: Package and Push Helm Chart
-      if: steps.check_tag.outputs.exists == 'false'
-      run: |
-        CHART_VERSION=${{ steps.chart_version.outputs.current_version }}
-        
-        # Package the chart
-        helm package chart/ --version $CHART_VERSION
-        
-        # Convert repository owner to lowercase (GitHub packages requires lowercase)
-        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        
-        # Push to OCI registry
-        helm push tunnel-worker-controller-$CHART_VERSION.tgz oci://${{ env.REGISTRY }}/${REPO_OWNER}/tunnel-worker-controller
-        
-        echo "Successfully pushed Helm chart version $CHART_VERSION"
-
-    - name: Create git tag for helm chart
-      if: steps.check_tag.outputs.exists == 'false'
-      run: |
-        CHART_VERSION=${{ steps.chart_version.outputs.current_version }}
-        TAG_NAME="helm-v$CHART_VERSION"
-        
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        git tag $TAG_NAME
-        git push origin $TAG_NAME
-        
-        echo "Created and pushed git tag: $TAG_NAME"
-
-  helm-validate:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-    - name: Install Helm
-      uses: azure/setup-helm@v4
-      with:
-        version: '3.14.0'
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-    - name: Validate Helm Chart
-      run: |
-        helm lint chart/
-        helm template test-release chart/ --dry-run
-        echo "Helm chart validation completed"
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
