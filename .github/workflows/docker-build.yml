@@ -3,6 +3,11 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '.github/workflows/helm-publish.yml'
+      - 'chart/**'
+      - 'todo.md'
+      - '*.md'
   pull_request:
     branches: [ main ]
 
