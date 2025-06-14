@@ -1,7 +1,7 @@
 apiVersion: v2
 name: tunnel-worker-controller
 description: A Helm chart for Kubernetes Job Manager with Cloudflare Tunnel Integration
-# OCI publishing enabled - using owner path
+# OCI publishing enabled - using full repository path
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
