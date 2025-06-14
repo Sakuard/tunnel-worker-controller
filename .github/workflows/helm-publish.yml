@@ -72,7 +72,7 @@ jobs:
         helm package chart/ --version $CHART_VERSION
         
         # Push to OCI registry
-        helm push tunnel-worker-controller-$CHART_VERSION.tgz oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        helm push tunnel-worker-controller-$CHART_VERSION.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
         
         echo "Successfully pushed Helm chart version $CHART_VERSION"
 

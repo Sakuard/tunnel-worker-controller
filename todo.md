@@ -35,7 +35,7 @@
 ### Helm Charts (手動控制) ⚓
 - **觸發**: `chart/` 目錄變更時 OR helm-publish.yml 變更時
 - **版本來源**: Chart.yaml version 字段 (目前 v0.1.0)
-- **發布位置**: `oci://ghcr.io/sakuard/tunnel-worker-controller`
+- **發布位置**: `oci://ghcr.io/sakuard`
 - **管理方式**: 手動修改 Chart.yaml → 推送 → 自動 OCI 發布
 - **Workflow**: `.github/workflows/helm-publish.yml`
 
