@@ -132,13 +132,53 @@ async function getPodLogs(podName) {
   });
 }
 
-async function createJob() {
+// 解析時間格式 (xs/xm/xh) 並轉換為秒數
+function parseProxyTime(timeStr) {
+  if (!timeStr) return 30 * 60; // 預設 30 分鐘
+  
+  const match = timeStr.match(/^(\d+)([smh])$/);
+  if (!match) return 30 * 60;
+  
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  
+  switch (unit) {
+    case 's': return value;
+    case 'm': return value * 60;
+    case 'h': return value * 60 * 60;
+    default: return 30 * 60;
+  }
+}
+
+// 取得服務配置 (未來可從 ConfigMap 讀取)
+function getServiceConfig(serviceName) {
+  const serviceMapping = {
+    'grafana': {
+      svc: 'kube-prometheus-stack-grafana',
+      namespace: 'monitoring',
+      port: 80
+    }
+    // 未來可從 ConfigMap 添加更多服務
+  };
+  
+  return serviceMapping[serviceName] || {
+    svc: 'kube-prometheus-stack-grafana',
+    namespace: 'monitoring', 
+    port: 80
+  };
+}
+
+async function createJob(serviceName = 'grafana', proxyTime = 1800) {
   return new Promise(async (resolve, reject) => {
     const token = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/token', 'utf8');
     const caCert = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt');
     
     const hostname = await getKubernetesApiHost();
     console.log(`嘗試在 ${hostname} 建立 Job`);
+    
+    // 取得服務配置
+    const serviceConfig = getServiceConfig(serviceName);
+    const tunnelUrl = `http://${serviceConfig.svc}.${serviceConfig.namespace}.svc.cluster.local:${serviceConfig.port}`;
 
     const postData = JSON.stringify({
       apiVersion: "batch/v1",
@@ -157,7 +197,7 @@ async function createJob() {
                 name: "tunnel",
                 image: "ghcr.io/sakuard/tunnel-worker-controller/cloudflare-tunnel:latest",
                 command: ["/bin/sh", "-c"],
-                args: ["cloudflared tunnel --url http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local:80 & sleep 180;"],
+                args: [`cloudflared tunnel --url ${tunnelUrl} & sleep ${proxyTime};`],
                 imagePullPolicy: "Always"
               }
             ]
@@ -274,46 +314,6 @@ async function waitForPodReady(jobName, maxRetries = 10) {
   return null;
 }
 
-// app.post('/runjob', (req, res) => {
-//   console.log(`Cloudflared tunnel 將在 3 秒後啟動`);
-  
-//   setTimeout(async() => {
-//     try {
-//       // 建立 Job
-//       await createJob();
-//       console.log('Job 建立成功，等待 Pod 啟動...');
-      
-//       // 等待 Pod 準備好
-//       const podName = await waitForPodReady('cf-job');
-//       if (!podName) {
-//         res.status(500).json({ error: 'Cloudflared tunnel 啟動失敗：找不到 Pod' });
-//         return;
-//       }
-      
-//       // 等待 tunnel 完全啟動
-//       console.log('Pod 已啟動，等待 tunnel 建立...');
-//       await new Promise(r => setTimeout(r, 8000));
-      
-//       // 取得 logs
-//       const logs = await getPodLogs(podName);
-//       console.log('Pod logs:', logs);
-      
-//       // 從 logs 中提取 tunnel URL
-//       const match = logs.match(/https:\/\/[a-z0-9\-]+\.trycloudflare\.com/);
-//       if (!match) {
-//         throw new Error('找不到 tunnel URL');
-//       }
-
-//       console.log(`找到 tunnel URL: ${match[0]}`);
-//       res.status(200).json({ tunnelUrl: match[0] });
-      
-//     } catch (err) {
-//       console.error('錯誤:', err);
-//       res.status(500).json({ error: `Cloudflared tunnel 啟動失敗: ${err.message}` });
-//     }
-//   }, 3000);
-// });
-
 // Initialize Telegram Bot
 const bot = new TelegramBot(BOT_TOKEN, {polling: true});
 console.log('Telegram Bot started...');
@@ -322,6 +322,18 @@ bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const messageText = msg.text;
   const userName = msg.from.first_name || msg.from.username || 'Unknown';
+  console.log(`[TG] ${userName}: ${messageText}`)
+  
+  let serviceName = '';
+  let proxyTime = '';
+  if (messageText && messageText.includes(':')) {
+    const parts = messageText.split(':');
+    serviceName = parts[0].trim();
+    proxyTime = parts[1].trim();
+  }
+  
+  console.log(`使用服務: ${serviceName}, Proxy 時間: ${proxyTime} 秒`);
+  proxyTime = parseProxyTime(proxyTime)
   
   // Only process messages from the specified CHAT_ID
   if (chatId.toString() === CHAT_ID) {
@@ -367,7 +379,7 @@ bot.on('message', async (msg) => {
       setTimeout(async() => {
         try {
           // 建立 Job
-          await createJob();
+          await createJob(serviceName, proxyTime);
           console.log('Job 建立成功，等待 Pod 啟動...');
           
           // 等待 Pod 準備好
