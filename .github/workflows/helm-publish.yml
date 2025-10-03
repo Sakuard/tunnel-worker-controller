@@ -1,0 +1,113 @@
+name: Helm Chart Release
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'chart/**'
+      - '!chart/**/README.md'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'chart/**'
+      - '!chart/**/README.md'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: v3.12.1
+
+    - name: Get current chart version
+      id: current_version
+      run: |
+        CURRENT_VERSION=$(grep '^version:' chart/Chart.yaml | awk '{print $2}')
+        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Bump chart version
+      id: bump_version
+      run: |
+        CURRENT_VERSION="${{ steps.current_version.outputs.current_version }}"
+        IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+        PATCH=$((${VERSION_PARTS[2]} + 1))
+        NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$PATCH"
+
+        sed -i "s/^version: .*/version: $NEW_VERSION/" chart/Chart.yaml
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Package Helm chart
+      run: |
+        helm package chart/ --destination .
+
+    - name: Update Helm repository index
+      run: |
+        helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
+    - name: Commit and push changes
+      run: |
+        git add chart/Chart.yaml index.yaml *.tgz
+        git commit -m "Release chart version ${{ steps.bump_version.outputs.new_version }}"
+        git push origin main
+
+    - name: Create GitHub release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: chart-v${{ steps.bump_version.outputs.new_version }}
+        release_name: Helm Chart v${{ steps.bump_version.outputs.new_version }}
+        body: |
+          ## Helm Chart Release v${{ steps.bump_version.outputs.new_version }}
+
+          ### Installation
+          ```bash
+          helm repo add cloudflare-tunnel-worker https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          helm install my-tunnel cloudflare-tunnel-worker/tunnel-worker-controller --version ${{ steps.bump_version.outputs.new_version }}
+          ```
+        draft: false
+        prerelease: false
+
+  deploy-pages:
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: '.'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2
