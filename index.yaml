@@ -3,7 +3,17 @@ entries:
   tunnel-worker-controller:
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-10-03T01:37:24.981748422Z"
+    created: "2025-10-03T02:47:21.724180971Z"
+    description: A Helm chart for Tunnel Worker Controller
+    digest: 3ef7f4f4ebe294380346f6e9224a510fdc50cd13efeea7dd3b24b0e233320a88
+    name: tunnel-worker-controller
+    type: application
+    urls:
+    - https://Sakuard.github.io/tunnel-worker-controller/tunnel-worker-controller-0.1.3.tgz
+    version: 0.1.3
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2025-10-03T02:47:21.724038565Z"
     description: A Helm chart for Tunnel Worker Controller
     digest: 9e792c8bd761d90d218979600f2cefc0347fdaabeaaa86618e4b053d959e7e41
     name: tunnel-worker-controller
@@ -13,7 +23,7 @@ entries:
     version: 0.1.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-10-03T01:37:24.981590948Z"
+    created: "2025-10-03T02:47:21.723846967Z"
     description: A Helm chart for Tunnel Worker Controller
     digest: 89b46b225be1f645c67a3a493ad37619f36e88d12fd7d9230241a816612c02e1
     name: tunnel-worker-controller
@@ -21,4 +31,4 @@ entries:
     urls:
     - https://Sakuard.github.io/tunnel-worker-controller/tunnel-worker-controller-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-03T01:37:24.981322987Z"
+generated: "2025-10-03T02:47:21.723577876Z"
