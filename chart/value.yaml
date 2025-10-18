@@ -7,6 +7,15 @@ env:
     - TG_BOT_TOKEN
     - TG_CHAT_ID
 
+controller:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 50Mi
+    limits:
+      cpu: 50m
+      memory: 100Mi
+
 createExternalSecret:
   refreshInterval: 1m
   name: cloudflared-tunnel

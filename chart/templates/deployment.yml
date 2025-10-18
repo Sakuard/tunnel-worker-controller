@@ -34,11 +34,15 @@ spec:
           {{- end }}
           {{- end }}
         resources:
+          {{- with .Values.controller.limits }}
           limits:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: {{ .memory }}
+            cpu: {{ .cpu }}
+          {{- end }}
+          {{- with .Values.controller.requests }}
           requests:
-            memory: "128Mi"
-            cpu: "100m"
+            memory: {{ .memory }}
+            cpu: {{ .cpu }}
+          {{- end }}
       imagePullSecrets:
         - name: regcred
