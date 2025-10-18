@@ -34,12 +34,12 @@ spec:
           {{- end }}
           {{- end }}
         resources:
-          {{- with .Values.controller.limits }}
+          {{- with .Values.controller.resources.limits }}
           limits:
             memory: {{ .memory }}
             cpu: {{ .cpu }}
           {{- end }}
-          {{- with .Values.controller.requests }}
+          {{- with .Values.controller.resources.requests }}
           requests:
             memory: {{ .memory }}
             cpu: {{ .cpu }}
